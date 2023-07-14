@@ -22,37 +22,10 @@ type ActionableMessageItem = {
     action: string;
 } & vscode.MessageItem;
 
+let showInlineHints = false;
+
 export function activate(context: vscode.ExtensionContext) {
-    // TODO: Is it really necessary to handle this?
-    let activeBlame: ChildProcessWithoutNullStreams | null;
-
-    async function getBlame(editor: vscode.TextEditor): Promise<BlameStruct | Error> {
-
-        if (!editor.document.uri.path.startsWith("/")) {
-            return Error("Cannot blame non-existent file");
-        }
-
-        if (activeBlame) {
-            activeBlame.kill("SIGKILL");
-            activeBlame = null;
-        }
-
-        const line = editor.selection.active.line;
-        const command = runCommand("git", ["blame", "-C", "--porcelain", "-L", `${line+1},+1`, editor.document.uri.path], {
-            cwd: dirname(editor.document.uri.path),
-        });
-        activeBlame = command.process;
-
-        const result = await command.promise;
-
-        activeBlame = null;
-
-        if (!result) {
-            return Error("Unknown error..");
-        }
-
-        return parseBlame(result)
-    }
+    const inlineHintDecorator = vscode.window.createTextEditorDecorationType({});
 
     async function showBlame() {
         const editor = vscode.window.activeTextEditor;
@@ -110,13 +83,91 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    function enableInlineHints() {
-        // TODO: Enable inline hints ?
-        console.info("TODO: Enable inline hints..");
+    function toggleInlineHints() {
+        showInlineHints = !showInlineHints;
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+
+        if (!showInlineHints) {
+            editor.setDecorations(inlineHintDecorator, []);
+            return;
+        }
+
+        onSelectionChange(editor, inlineHintDecorator);
     }
 
+    vscode.window.onDidChangeTextEditorSelection(e => onSelectionChange(e.textEditor, inlineHintDecorator));
+
     context.subscriptions.push(vscode.commands.registerCommand("extension.git-blame", showBlame));
-    context.subscriptions.push(vscode.commands.registerCommand("extension.git-blame.show-inline-hints", enableInlineHints));
+    context.subscriptions.push(vscode.commands.registerCommand("extension.git-blame.toggle-inline-hints", toggleInlineHints));
+}
+
+async function onSelectionChange(editor: vscode.TextEditor, lineDecorator: vscode.TextEditorDecorationType) {
+    if (!showInlineHints) {
+        return;
+    }
+
+    editor.setDecorations(lineDecorator, []);
+
+    const blame = await getBlame(editor);
+    let contentText: string;
+    if (blame instanceof Error) {
+        contentText = blame.message;
+    } else {
+        const summary = blame.summary.length > 20 ? `${blame.summary.slice(0,18)}...` : blame.summary.slice(0,18);
+        contentText = `${blame.committer.name} (${blame.sha.slice(0,8)}, ${formatTimeAgo(new Date(blame.committer.time * 1000))}) ${summary}`;
+    }
+
+    const decorationPosition = new vscode.Position(
+        editor.selection.active.line,
+        Number.MAX_SAFE_INTEGER,
+    );
+
+
+    editor.setDecorations(lineDecorator, [
+        {
+            renderOptions: {
+                after: {
+                    contentText,
+                    margin: `0 0 0 ${3}rem`,
+                    color: new vscode.ThemeColor("editorCodeLens.foreground"),
+                },
+            },
+            range: new vscode.Range(decorationPosition, decorationPosition),
+        },
+    ]);
+}
+
+// TODO: Is it really necessary to handle this?
+let activeBlame: ChildProcessWithoutNullStreams | null;
+async function getBlame(editor: vscode.TextEditor): Promise<BlameStruct | Error> {
+
+    if (!editor.document.uri.path.startsWith("/")) {
+        return Error("Cannot blame non-existent file");
+    }
+
+    if (activeBlame) {
+        activeBlame.kill("SIGKILL");
+        activeBlame = null;
+    }
+
+    const line = editor.selection.active.line;
+    const command = runCommand("git", ["blame", "-C", "--porcelain", "-L", `${line+1},+1`, editor.document.uri.path], {
+        cwd: dirname(editor.document.uri.path),
+    });
+    activeBlame = command.process;
+
+    const result = await command.promise;
+
+    activeBlame = null;
+
+    if (!result) {
+        return Error("Unknown error..");
+    }
+
+    return parseBlame(result)
 }
 
 function parseBlame(blameString: string): BlameStruct | Error {

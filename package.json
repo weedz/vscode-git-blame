@@ -1,6 +1,6 @@
 {
     "name": "vscode-git-blame",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "",
     "publisher": "weedzcokie",
     "type": "commonjs",
@@ -19,8 +19,8 @@
                 "title": "Git Blame: Show blame"
             },
             {
-                "command": "extension.git-blame.show-inline-hints",
-                "title": "Git Blame: inline hints"
+                "command": "extension.git-blame.toggle-inline-hints",
+                "title": "Git Blame: Toggle inline blame"
             }
         ]
     },
