@@ -1,0 +1,40 @@
+{
+    "name": "vscode-git-blame",
+    "version": "1.0.0",
+    "description": "",
+    "publisher": "weedzcokie",
+    "type": "commonjs",
+    "main": "./out/extension.js",
+    "scripts": {
+        "vscode:prepublish": "pnpm run build",
+        "package": "vsce package",
+        "build": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "activationEvents": [],
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.git-blame",
+                "title": "Git Blame: Show blame"
+            },
+            {
+                "command": "extension.git-blame.show-inline-hints",
+                "title": "Git Blame: inline hints"
+            }
+        ]
+    },
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.4.2",
+        "@types/vscode": "^1.80.0",
+        "eslint": "^8.45.0",
+        "typescript": "^5.1.6"
+    },
+    "keywords": [],
+    "repository": "https://github.com/weedz/vscode-git-blame",
+    "author": "Linus Björklund",
+    "license": "MIT"
+}
