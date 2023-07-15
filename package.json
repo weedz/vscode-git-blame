@@ -5,6 +5,9 @@
     "publisher": "weedzcokie",
     "type": "commonjs",
     "main": "./out/extension.js",
+    "files": [
+        "out/*"
+    ],
     "scripts": {
         "vscode:prepublish": "pnpm run build",
         "package": "vsce package",
@@ -30,7 +33,6 @@
     "devDependencies": {
         "@types/node": "^20.4.2",
         "@types/vscode": "^1.80.0",
-        "eslint": "^8.45.0",
         "typescript": "^5.1.6"
     },
     "keywords": [],
